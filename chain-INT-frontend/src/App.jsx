@@ -144,7 +144,6 @@ export default function OSINTPlatform() {
   const runOSINT = async () => {
     if (!query.trim() || isRunning) return;
 
-    // reset state
     stopScan();
     setIsRunning(true);
     setError(null);
@@ -158,7 +157,6 @@ export default function OSINTPlatform() {
     setLoadingSections(loading);
 
     try {
-      // Use fetch + ReadableStream to consume SSE from the backend
       const response = await fetch(`${API_BASE}/api/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,7 +175,7 @@ export default function OSINTPlatform() {
       const processSSE = (chunk) => {
         buffer += chunk;
         const parts = buffer.split("\n\n");
-        buffer = parts.pop(); // keep incomplete tail
+        buffer = parts.pop();
 
         for (const part of parts) {
           const lines = part.split("\n");
@@ -200,11 +198,7 @@ export default function OSINTPlatform() {
             setSections(newSections);
             if (parsed._score !== undefined) setTrustScore(parsed._score);
           }
-
-          if (eventName === "tool_use") {
-            setToolCount(data.count);
-          }
-
+          if (eventName === "tool_use") setToolCount(data.count);
           if (eventName === "done") {
             const parsed = parseIntoSections(rawRef.current);
             if (parsed._score !== undefined) {
@@ -216,10 +210,7 @@ export default function OSINTPlatform() {
             setLoadingSections({});
             setIsRunning(false);
           }
-
-          if (eventName === "error") {
-            throw new Error(data.message || "Scan error");
-          }
+          if (eventName === "error") throw new Error(data.message || "Scan error");
         }
       };
 
@@ -228,7 +219,6 @@ export default function OSINTPlatform() {
         if (done) break;
         processSSE(decoder.decode(value, { stream: true }));
       }
-
     } catch (e) {
       setError(e.message);
       setLoadingSections({});
@@ -258,25 +248,14 @@ export default function OSINTPlatform() {
         ::-webkit-scrollbar-thumb{background:#1e2a3a}
         input::placeholder{color:#1e3a2a}
         .scan-btn:not(:disabled):hover { background:#00ff9d !important; color:#030810 !important; }
-        .ex-btn:hover { border-color:#00ff9d44 !important; color:#00ff9d !important; }
       `}</style>
 
-      {/* Scanline overlay */}
-      <div style={{
-        position: "fixed", left: 0, right: 0, height: "2px",
-        background: "linear-gradient(transparent,#00ff9d22,transparent)",
-        animation: "scanline 5s linear infinite", pointerEvents: "none", zIndex: 999,
-      }} />
+      <div style={{ position: "fixed", left: 0, right: 0, height: "2px", background: "linear-gradient(transparent,#00ff9d22,transparent)", animation: "scanline 5s linear infinite", pointerEvents: "none", zIndex: 999 }} />
 
-      {/* Header */}
       <div style={{ borderBottom: "1px solid #0d1f2d", padding: "18px 28px", display: "flex", alignItems: "center", gap: "20px" }}>
         <div>
-          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "20px", fontWeight: "bold", color: "#00ff9d", letterSpacing: "4px", animation: "glitch 7s infinite" }}>
-            ◆ CHAIN_INT
-          </div>
-          <div style={{ fontSize: "9px", letterSpacing: "3px", color: "#1a3a2a", marginTop: "3px" }}>
-            WEB3 OSINT INTELLIGENCE PLATFORM // DEEP SCAN ENGINE
-          </div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "20px", fontWeight: "bold", color: "#00ff9d", letterSpacing: "4px", animation: "glitch 7s infinite" }}>◆ CHAIN_INT</div>
+          <div style={{ fontSize: "9px", letterSpacing: "3px", color: "#1a3a2a", marginTop: "3px" }}>WEB3 OSINT INTELLIGENCE PLATFORM // DEEP SCAN ENGINE</div>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: "24px" }}>
           {[["SOURCES","14+"],["DATA","LIVE"],["MODE","DEEP SCAN"]].map(([l,v]) => (
@@ -289,18 +268,49 @@ export default function OSINTPlatform() {
       </div>
 
       <div style={{ display: "flex", height: "calc(100vh - 70px)" }}>
-        {/* Sidebar */}
         <div style={{ width: "210px", borderRight: "1px solid #0d1f2d", padding: "18px 0", flexShrink: 0, overflowY: "auto" }}>
           <div style={{ padding: "0 14px 10px", fontSize: "8px", letterSpacing: "3px", color: "#1a3a2a" }}>ACTIVE SOURCES</div>
           {["CryptoRank","RootData","DeFiLlama","CoinGecko","LinkedIn","Twitter/X","GitHub","Crunchbase","Messari","On-Chain","OpenSanctions","OFAC","SEC EDGAR","Wayback Machine"].map((src, i) => (
             <div key={src} style={{ padding: "5px 14px", fontSize: "10px", color: isRunning ? "#2a6a3a" : "#1e3a2a", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{
-                width: "5px", height: "5px", borderRadius: "50%",
-                background: isRunning ? "#00ff9d" : "#1a2a1a",
-                boxShadow: isRunning ? "0 0 6px #00ff9d" : "none",
-                animation: isRunning ? `pulse 1.5s ${(i*0.1).toFixed(1)}s infinite` : "none",
-                flexShrink: 0,
-              }} />
+              <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: isRunning ? "#00ff9d" : "#1a2a1a", boxShadow: isRunning ? "0 0 6px #00ff9d" : "none", animation: isRunning ? `pulse 1.5s ${(i*0.1).toFixed(1)}s infinite` : "none", flexShrink: 0 }} />
               {src}
             </div>
           ))}
+        </div>
+
+        <div style={{ flex: 1, padding: "30px", overflowY: "auto" }}>
+          <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+            <div style={{ position: "relative", marginBottom: "40px" }}>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && runOSINT()}
+                placeholder="ENTER PROJECT NAME OR CONTRACT..."
+                style={{ width: "100%", background: "#060d1a", border: "1px solid #1e2a3a", padding: "18px 20px", color: "#00ff9d", fontFamily: "'Space Mono', monospace", outline: "none" }}
+              />
+              <button
+                className="scan-btn"
+                onClick={isRunning ? stopScan : runOSINT}
+                style={{ position: "absolute", right: "8px", top: "8px", bottom: "8px", background: "#00ff9d11", color: "#00ff9d", border: "1px solid #00ff9d", padding: "0 20px", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}
+              >
+                {isRunning ? "STOP" : "SCAN"}
+              </button>
+            </div>
+
+            {hasResults && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+                <h2 style={{ color: "#fff", letterSpacing: "2px" }}>{projectName.toUpperCase()}</h2>
+                {trustScore !== null && <RiskMeter score={trustScore} />}
+              </div>
+            )}
+
+            {SECTIONS.map(s => (
+              <SectionCard key={s.id} section={s} content={sections[s.id]} isLoading={loadingSections[s.id]} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
