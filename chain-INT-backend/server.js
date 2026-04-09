@@ -9,7 +9,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 // ── Security & Middleware ────────────────────────────────────────────
 app.use(helmet());
@@ -18,7 +18,7 @@ app.use(express.json({ limit: "10kb" }));
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
-  : ["http://localhost:5173", "http://localhost:3000"];
+  : ["http://localhost:5173", "http://localhost:8080"];
 
 app.use(
   cors({
