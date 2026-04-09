@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 
-// ── Configuration ───────────────────────────────────────────────────
-const API_BASE = (import.meta.env && import.meta.env.VITE_API_URL) || "http://localhost:3001";
+// ── Point this at your backend ────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 const SECTIONS = [
   { id: "overview",   label: "Project Overview",      icon: "◈" },
@@ -14,7 +14,7 @@ const SECTIONS = [
   { id: "verdict",    label: "OSINT Verdict",         icon: "◆" },
 ];
 
-// ── Risk Meter ──────────────────────────────────────────────────────
+// ── Risk Meter ────────────────────────────────────────────────────────
 function RiskMeter({ score }) {
   const color  = score >= 70 ? "#00ff9d" : score >= 40 ? "#ffd700" : "#ff4444";
   const label  = score >= 70 ? "LOW RISK" : score >= 40 ? "MODERATE RISK" : "HIGH RISK";
@@ -27,11 +27,14 @@ function RiskMeter({ score }) {
         <circle cx="65" cy="65" r="54" fill="none" stroke={color} strokeWidth="10"
           strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
           transform="rotate(-90 65 65)"
+          style={{ transition: "stroke-dasharray 1.5s cubic-bezier(0.4,0,0.2,1)", filter: `drop-shadow(0 0 8px ${color})` }}
         />
-        <text x="65" y="60" textAnchor="middle" fill={color} fontSize="26" fontFamily="monospace" fontWeight="bold">{score}</text>
-        <text x="65" y="78" textAnchor="middle" fill="#666" fontSize="9" fontFamily="monospace">TRUST SCORE</text>
+        <text x="65" y="60" textAnchor="middle" fill={color} fontSize="26"
+          fontFamily="'Space Mono', monospace" fontWeight="bold">{score}</text>
+        <text x="65" y="78" textAnchor="middle" fill="#666" fontSize="9"
+          fontFamily="'Space Mono', monospace">TRUST SCORE</text>
       </svg>
-      <span style={{ color, fontFamily: "monospace", fontSize: "11px", letterSpacing: "3px", fontWeight: "bold" }}>{label}</span>
+      <span style={{ color, fontFamily: "'Space Mono', monospace", fontSize: "11px", letterSpacing: "3px", fontWeight: "bold" }}>{label}</span>
     </div>
   );
 }
@@ -40,31 +43,47 @@ function RiskMeter({ score }) {
 function SectionCard({ section, content, isLoading }) {
   const [expanded, setExpanded] = useState(true);
 
-  const fmt = (text) => {
-    if (!text) return "";
-    return text
+  const fmt = (text) =>
+    text
       .replace(/\*\*(.*?)\*\*/g, '<span style="color:#00ff9d;font-weight:bold">$1</span>')
-      .replace(/##\s+(.*)/g, '<div style="color:#c8a96e;font-size:11px;letter-spacing:2px;margin:14px 0 6px;font-family:monospace">$1</div>')
+      .replace(/🔴/g, '<span style="color:#ff4444">🔴</span>')
+      .replace(/🟡/g, '<span style="color:#ffd700">🟡</span>')
+      .replace(/🟢/g, '<span style="color:#00ff9d">🟢</span>')
+      .replace(/⚠️/g, '<span style="color:#ffd700">⚠️</span>')
+      .replace(/✅/g, '<span style="color:#00ff9d">✅</span>')
+      .replace(/❌/g, '<span style="color:#ff4444">❌</span>')
+      .replace(/##\s+(.*)/g, '<div style="color:#c8a96e;font-size:11px;letter-spacing:2px;margin:14px 0 6px;font-family:Space Mono,monospace">$1</div>')
       .replace(/---/g, '<hr style="border:none;border-top:1px solid #1e2a3a;margin:12px 0"/>');
-  };
 
   return (
-    <div style={{ border: "1px solid #1e2a3a", borderRadius: "2px", marginBottom: "4px", background: "#060d1a", overflow: "hidden" }}>
+    <div
+      style={{ border: "1px solid #1e2a3a", borderRadius: "2px", marginBottom: "2px", background: "#060d1a", overflow: "hidden" }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = "#00ff9d33"}
+      onMouseLeave={e => e.currentTarget.style.borderColor = "#1e2a3a"}
+    >
       <button onClick={() => setExpanded(!expanded)} style={{
         width: "100%", display: "flex", alignItems: "center", gap: "12px",
         padding: "14px 18px", background: "none", border: "none", cursor: "pointer",
       }}>
-        <span style={{ color: "#00ff9d", fontSize: "16px" }}>{section.icon}</span>
-        <span style={{ fontFamily: "monospace", fontSize: "11px", letterSpacing: "2px", color: "#aaa", flex: 1, textAlign: "left" }}>
+        <span style={{ color: "#00ff9d", fontSize: "16px", fontFamily: "monospace" }}>{section.icon}</span>
+        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: "11px", letterSpacing: "2px", color: "#aaa", flex: 1, textAlign: "left" }}>
           {section.label.toUpperCase()}
         </span>
-        {isLoading && <span style={{ color: "#00ff9d", fontSize: "10px" }}>SCANNING...</span>}
-        {!isLoading && content && <span style={{ color: "#00ff9d" }}>{expanded ? "▼" : "▶"}</span>}
+        {isLoading && (
+          <span style={{ display: "flex", gap: "3px" }}>
+            {[0,1,2].map(i => (
+              <span key={i} style={{ width: "4px", height: "4px", borderRadius: "50%", background: "#00ff9d", animation: `pulse 1s ${i*0.2}s infinite` }} />
+            ))}
+          </span>
+        )}
+        {!isLoading && content && (
+          <span style={{ color: "#00ff9d", fontSize: "10px", fontFamily: "monospace" }}>{expanded ? "▼" : "▶"}</span>
+        )}
       </button>
       {expanded && content && (
         <div style={{ padding: "0 18px 18px 44px" }}>
           <div
-            style={{ fontFamily: "monospace", fontSize: "12.5px", lineHeight: "1.9", color: "#8899aa", whiteSpace: "pre-wrap" }}
+            style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "12.5px", lineHeight: "1.9", color: "#8899aa", whiteSpace: "pre-wrap" }}
             dangerouslySetInnerHTML={{ __html: fmt(content) }}
           />
         </div>
@@ -73,7 +92,7 @@ function SectionCard({ section, content, isLoading }) {
   );
 }
 
-// ── Parse SSE Stream ─────────────────────────────────────────────────
+// ── Parse streamed text into section buckets ──────────────────────────
 function parseIntoSections(text) {
   const MAP = {
     "PROJECT OVERVIEW": "overview",
@@ -85,154 +104,203 @@ function parseIntoSections(text) {
     "RISK & RED FLAGS": "redflags",
     "OSINT VERDICT": "verdict",
   };
-
   const result = {};
-  let current = null;
-  let buffer = [];
-
+  let cur = null, buf = [];
   for (const line of text.split("\n")) {
-    const match = line.match(/^##\s+(.+)/);
-    if (match) {
-      if (current && buffer.length) result[current] = buffer.join("\n").trim();
-      const key = Object.keys(MAP).find(k => match[1].toUpperCase().includes(k));
-      current = key ? MAP[key] : null;
-      buffer = [];
-    } else if (current) {
-      buffer.push(line);
-    }
+    const m = line.match(/^##\s+(.+)/);
+    if (m) {
+      if (cur && buf.length) result[cur] = buf.join("\n").trim();
+      const key = Object.keys(MAP).find(k => m[1].toUpperCase().includes(k));
+      cur = key ? MAP[key] : null;
+      buf = [];
+    } else if (cur) buf.push(line);
   }
-
-  if (current && buffer.length) result[current] = buffer.join("\n").trim();
-
+  if (cur && buf.length) result[cur] = buf.join("\n").trim();
   const score = text.match(/TRUST_SCORE:\s*(\d+)/);
   if (score) result._score = parseInt(score[1]);
-
   return result;
 }
 
-// ── Main App ─────────────────────────────────────────────────────────
+// ── Main App ──────────────────────────────────────────────────────────
 export default function OSINTPlatform() {
-  const [query, setQuery] = useState("");
-  const [isRunning, setIsRunning] = useState(false);
-  const [sections, setSections] = useState({});
-  const [loadingSections, setLoadingSections] = useState({});
-  const [trustScore, setTrustScore] = useState(null);
-  const [projectName, setProjectName] = useState("");
-  const [error, setError] = useState(null);
+  const [query,          setQuery]          = useState("");
+  const [isRunning,      setIsRunning]      = useState(false);
+  const [sections,       setSections]       = useState({});
+  const [loadingSections,setLoadingSections]= useState({});
+  const [trustScore,     setTrustScore]     = useState(null);
+  const [projectName,    setProjectName]    = useState("");
+  const [error,          setError]          = useState(null);
+  const [scanned,        setScanned]        = useState([]);
+  const [toolCount,      setToolCount]      = useState(0);
   const rawRef = useRef("");
+  const esRef  = useRef(null);
+
+  const stopScan = () => {
+    if (esRef.current) { esRef.current.close(); esRef.current = null; }
+    setIsRunning(false);
+    setLoadingSections({});
+  };
 
   const runOSINT = async () => {
     if (!query.trim() || isRunning) return;
 
+    // reset state
+    stopScan();
     setIsRunning(true);
     setError(null);
     setSections({});
     setTrustScore(null);
+    setToolCount(0);
     rawRef.current = "";
     setProjectName(query.trim());
-
     const loading = {};
-    SECTIONS.forEach(s => (loading[s.id] = true));
+    SECTIONS.forEach(s => { loading[s.id] = true; });
     setLoadingSections(loading);
 
     try {
-      const res = await fetch(`${API_BASE}/api/scan`, {
+      // Use fetch + ReadableStream to consume SSE from the backend
+      const response = await fetch(`${API_BASE}/api/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: query.trim() }),
       });
 
-      if (!res.ok) throw new Error("Server error");
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Server error ${response.status}`);
+      }
 
-      const reader = res.body.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+
+      const processSSE = (chunk) => {
+        buffer += chunk;
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop(); // keep incomplete tail
+
+        for (const part of parts) {
+          const lines = part.split("\n");
+          let eventName = "message";
+          let dataStr   = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) eventName = line.slice(7).trim();
+            if (line.startsWith("data: "))  dataStr   = line.slice(6).trim();
+          }
+          if (!dataStr) continue;
+
+          let data;
+          try { data = JSON.parse(dataStr); } catch { continue; }
+
+          if (eventName === "text_delta") {
+            rawRef.current += data.text;
+            const parsed = parseIntoSections(rawRef.current);
+            const newSections = {};
+            SECTIONS.forEach(s => { if (parsed[s.id]) newSections[s.id] = parsed[s.id]; });
+            setSections(newSections);
+            if (parsed._score !== undefined) setTrustScore(parsed._score);
+          }
+
+          if (eventName === "tool_use") {
+            setToolCount(data.count);
+          }
+
+          if (eventName === "done") {
+            const parsed = parseIntoSections(rawRef.current);
+            if (parsed._score !== undefined) {
+              setScanned(prev => [
+                { name: query.trim(), score: parsed._score, time: new Date().toLocaleTimeString() },
+                ...prev.slice(0, 9),
+              ]);
+            }
+            setLoadingSections({});
+            setIsRunning(false);
+          }
+
+          if (eventName === "error") {
+            throw new Error(data.message || "Scan error");
+          }
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop();
-
-        for (const part of parts) {
-          let event = "";
-          let dataStr = "";
-
-          part.split("\n").forEach(line => {
-            if (line.startsWith("event:")) event = line.slice(6).trim();
-            if (line.startsWith("data:")) dataStr = line.slice(5).trim();
-          });
-
-          if (!dataStr) continue;
-
-          const data = JSON.parse(dataStr);
-
-          if (event === "text_delta") {
-            rawRef.current += data.text;
-            const parsed = parseIntoSections(rawRef.current);
-
-            const updated = {};
-            SECTIONS.forEach(s => {
-              if (parsed[s.id]) updated[s.id] = parsed[s.id];
-            });
-
-            setSections(updated);
-            if (parsed._score !== undefined) setTrustScore(parsed._score);
-          }
-
-          if (event === "done") {
-            setIsRunning(false);
-            setLoadingSections({});
-          }
-
-          if (event === "error") {
-            throw new Error(data.message);
-          }
-        }
+        processSSE(decoder.decode(value, { stream: true }));
       }
-    } catch (err) {
-      setError(err.message);
-      setIsRunning(false);
+
+    } catch (e) {
+      setError(e.message);
       setLoadingSections({});
+      setIsRunning(false);
     }
   };
 
   const hasResults = Object.keys(sections).length > 0;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#030810", color: "#8899aa", fontFamily: "monospace" }}>
-      <div style={{ padding: "24px" }}>
-        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Enter project..."
-            style={{ flex: 1, padding: "12px", background: "#060d1a", border: "1px solid #1e2a3a", color: "#00ff9d" }}
-          />
-          <button onClick={runOSINT} style={{ padding: "0 20px", background: "#00ff9d", border: "none", cursor: "pointer" }}>
-            {isRunning ? "Scanning..." : "Scan"}
-          </button>
+    <div style={{ minHeight: "100vh", background: "#030810", fontFamily: "'IBM Plex Mono', monospace", color: "#8899aa" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes pulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1.1)} }
+        @keyframes scanline { 0%{top:-2px} 100%{top:100vh} }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes glitch {
+          0%,90%,100%{text-shadow:none}
+          92%{text-shadow:-2px 0 #ff0044,2px 0 #00ffff}
+          94%{text-shadow:none}
+          96%{text-shadow:2px 0 #ff0044,-2px 0 #00ffff}
+          98%{text-shadow:none}
+        }
+        ::-webkit-scrollbar{width:4px}
+        ::-webkit-scrollbar-track{background:#030810}
+        ::-webkit-scrollbar-thumb{background:#1e2a3a}
+        input::placeholder{color:#1e3a2a}
+        .scan-btn:not(:disabled):hover { background:#00ff9d !important; color:#030810 !important; }
+        .ex-btn:hover { border-color:#00ff9d44 !important; color:#00ff9d !important; }
+      `}</style>
+
+      {/* Scanline overlay */}
+      <div style={{
+        position: "fixed", left: 0, right: 0, height: "2px",
+        background: "linear-gradient(transparent,#00ff9d22,transparent)",
+        animation: "scanline 5s linear infinite", pointerEvents: "none", zIndex: 999,
+      }} />
+
+      {/* Header */}
+      <div style={{ borderBottom: "1px solid #0d1f2d", padding: "18px 28px", display: "flex", alignItems: "center", gap: "20px" }}>
+        <div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontSize: "20px", fontWeight: "bold", color: "#00ff9d", letterSpacing: "4px", animation: "glitch 7s infinite" }}>
+            ◆ CHAIN_INT
+          </div>
+          <div style={{ fontSize: "9px", letterSpacing: "3px", color: "#1a3a2a", marginTop: "3px" }}>
+            WEB3 OSINT INTELLIGENCE PLATFORM // DEEP SCAN ENGINE
+          </div>
         </div>
-
-        {error && <div style={{ color: "#ff4444" }}>{error}</div>}
-
-        {hasResults && (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <h3>{projectName}</h3>
-              {trustScore !== null && <RiskMeter score={trustScore} />}
+        <div style={{ marginLeft: "auto", display: "flex", gap: "24px" }}>
+          {[["SOURCES","14+"],["DATA","LIVE"],["MODE","DEEP SCAN"]].map(([l,v]) => (
+            <div key={l} style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "8px", color: "#1a3a2a", letterSpacing: "2px" }}>{l}</div>
+              <div style={{ fontSize: "11px", color: "#00ff9d", fontFamily: "'Space Mono', monospace" }}>{v}</div>
             </div>
-
-            {SECTIONS.map(s => (
-              (sections[s.id] || loadingSections[s.id]) && (
-                <SectionCard key={s.id} section={s} content={sections[s.id]} isLoading={loadingSections[s.id]} />
-              )
-            ))}
-          </>
-        )}
+          ))}
+        </div>
       </div>
-    </div>
-  );
-}
+
+      <div style={{ display: "flex", height: "calc(100vh - 70px)" }}>
+        {/* Sidebar */}
+        <div style={{ width: "210px", borderRight: "1px solid #0d1f2d", padding: "18px 0", flexShrink: 0, overflowY: "auto" }}>
+          <div style={{ padding: "0 14px 10px", fontSize: "8px", letterSpacing: "3px", color: "#1a3a2a" }}>ACTIVE SOURCES</div>
+          {["CryptoRank","RootData","DeFiLlama","CoinGecko","LinkedIn","Twitter/X","GitHub","Crunchbase","Messari","On-Chain","OpenSanctions","OFAC","SEC EDGAR","Wayback Machine"].map((src, i) => (
+            <div key={src} style={{ padding: "5px 14px", fontSize: "10px", color: isRunning ? "#2a6a3a" : "#1e3a2a", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{
+                width: "5px", height: "5px", borderRadius: "50%",
+                background: isRunning ? "#00ff9d" : "#1a2a1a",
+                boxShadow: isRunning ? "0 0 6px #00ff9d" : "none",
+                animation: isRunning ? `pulse 1.5s ${(i*0.1).toFixed(1)}s infinite` : "none",
+                flexShrink: 0,
+              }} />
+              {src}
+            </div>
+          ))}
